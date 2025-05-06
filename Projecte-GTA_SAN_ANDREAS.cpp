@@ -6,23 +6,24 @@ public:
     int x;
     int y;
 };
+
 int main()
 {
     int rows = 5, columns = 17;
-    int** mapa;
+    char** mapa;
 
-    mapa = new int* [rows];
+    mapa = new char* [rows];
 
     for (int i = 0; rows > i; i++)
     {
-        mapa[i] = new int[columns];
+        mapa[i] = new char[columns];
     }
 
     for (int i = 0; rows > i; i++)
     {
         for (int j = 0; columns > j; j++)
         {
-            mapa[i][j] = "_";
+            mapa[i][j] = '_';
         }
     }
 
@@ -34,4 +35,10 @@ int main()
         }
         std::cout << std::endl;
     }
+
+    for (int i = 0; rows > i; i++)
+    {
+        delete[] mapa[i];
+    }
+    delete[] mapa;
 }
