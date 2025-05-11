@@ -135,7 +135,7 @@ struct GTASANANDREAS
         {
             std::cout << "No es pot obrir el fitxer";
         }
-
+        std::cout << config.amplada;
     }
 
     // Inicialitza el mapa del joc
@@ -200,9 +200,9 @@ struct GTASANANDREAS
         {
             peatons[i].posicio.x = 5 + rand() % (ampladaIsla - 10);  // Posició aleatòria dins Los Santos
             peatons[i].posicio.y = 5 + rand() % (config.altura - 10);
-            peatons[i].direccio = rand() % 2 == 0 ? 'H' : 'V';     // Direcció aleatòria
-            peatons[i].viu = true;
-            mapa[peatons[i].posicio.y][peatons[i].posicio.x] = 'P';
+            peatons[i].direccio = (rand() % 2 == 0) ? 'H' : 'V';     // Direcció aleatòria
+            peatons[i].viu = true;                                   // Comencen vius
+            mapa[peatons[i].posicio.y][peatons[i].posicio.x] = 'P';  // Marca al mapa
         }
 
         // Peatons de San Fierro
@@ -211,14 +211,30 @@ struct GTASANANDREAS
             int index = config.peatonsLosSantos + i;
             peatons[index].posicio.x = ampladaIsla + 5 + rand() % (ampladaIsla - 10);  // Posició aleatòria dins San Fierro
             peatons[index].posicio.y = 5 + rand() % (config.altura - 10);
-            peatons[index].direccio = rand() % 2 == 0 ? 'H' : 'V';  // Direcció aleatòria
-            peatons[index].viu = true;
-            mapa[peatons[index].posicio.y][peatons[index].posicio.x] = 'P';
+            peatons[index].direccio = (rand() % 2 == 0) ? 'H' : 'V';  // Direcció aleatòria
+            peatons[index].viu = true;                                // Comencen vius
+            mapa[peatons[index].posicio.y][peatons[index].posicio.x] = 'P';  // Marca al mapa
         }
     }
 
 
+    void regenerarPeaton(int indice)
+    {
 
+        if (peatons[indice].posicio.x < ampladaIsla)
+        {
+
+            peatons[indice].posicio.x = 5 + rand() % (ampladaIsla - 10);
+        }
+        else
+        {
+
+            peatons[indice].posicio.x = ampladaIsla + 5 + rand() % (ampladaIsla - 10);
+        }
+        peatons[indice].posicio.y = 5 + rand() % (config.altura - 10);
+        peatons[indice].viu = true;
+        mapa[peatons[indice].posicio.y][peatons[indice].posicio.x] = 'P';
+    }
 
 
     bool estaCostatJugador(const Posicio& posPeaton)
@@ -263,8 +279,15 @@ struct GTASANANDREAS
             mapa[peatons[i].posicio.y][peatons[i].posicio.x] = 'P';
         }
     }
-
-
+    // Afegeix diners
+    void agregarDiners(Posicio pos, int cantidad)
+    {
+        Diners* nuevo = new Diners;
+        nuevo->posicio = pos;
+        nuevo->cantitat = cantidad;
+        nuevo->diners = diners;
+        diners = nuevo;
+    }
 
     void AtacJugador()
     {
@@ -287,13 +310,52 @@ struct GTASANANDREAS
                     //Diners aleatori
                     int dinero = (peatons[i].posicio.x < ampladaIsla) ? rand() % config.dinersMaxLosSantos + 1 : rand() % config.dinersMaxSanFierro + 1;
 
+                    // agregar diners quan el peato mor
+                    agregarDiners(peatons[i].posicio, dinero);
 
+                    // Regenera el peató que ha sigut eliminat
+                    regenerarPeaton(i);
                 }
             }
         }
     }
 
 
+
+    // Recull diners quan el jugador passa per sobre
+    void recollirDiners()
+    {
+        Diners* actual = diners;
+        Diners* anterior = nullptr;
+
+        while (actual != nullptr)
+        {
+            if (jugador.posicio.x == actual->posicio.x && jugador.posicio.y == actual->posicio.y)
+            {
+                // El jugador està sobre els diners
+                jugador.diners += actual->cantitat;
+
+
+                if (anterior == nullptr)
+                {
+                    diners = actual->diners;
+                    delete actual;
+                    actual = diners;
+                }
+                else
+                {
+                    anterior->diners = actual->diners;
+                    delete actual;
+                    actual = anterior->diners;
+                }
+            }
+            else
+            {
+                anterior = actual;
+                actual = actual->diners;
+            }
+        }
+    }
 
 
     void procesarInput()
@@ -405,10 +467,13 @@ struct GTASANANDREAS
     void actualizar()
     {
         AtacJugador();
+        recollirDiners();
         mourePeatons();
         mostrarVista();
     }
 };
+
+
 int main()
 {
     GTASANANDREAS juego;
