@@ -1,12 +1,12 @@
 #include <iostream>
 #include <fstream>
-#include <cstdlib>
-#include <ctime>
+#include <stdlib.h>
+#include <time.h>
 #include <windows.h>
-#include <vector>
-#include <algorithm>
 
+#define ATTACK_KEY VK_SPACE
 
+// Configuració del joc
 struct Config
 {
     int amplada;
@@ -19,25 +19,22 @@ struct Config
     int dinersMaxSanFierro;
 };
 
+//Per guardar posicions
 struct Posicio
 {
     int x;
     int y;
-    bool operator==(const Posicio& other) const {
-        return x == other.x && y == other.y;
-    }
 };
 
-struct Peato
+//  Pels peatons
+struct Peatons
 {
     Posicio posicio;
-    Posicio posAnterior;
     char direccio;
     bool viu;
-    bool movimentPausat;
-    int isla; // 0: Los Santos, 1: San Fierro, 2: Las Venturas
 };
 
+// Estructura per al jugador
 struct Jugador
 {
     Posicio posicio;
@@ -46,38 +43,46 @@ struct Jugador
     int diners;
 };
 
+// Estructura pels diners
 struct Diners
 {
     Posicio posicio;
-    int quantitat;
-    int isla;
+    int cantitat;
+    Diners* diners;
 };
 
+// Struct principal del joc
 struct GTASANANDREAS
 {
     Config config;
     char** mapa;
     Jugador jugador;
     int ampladaIsla;
-    std::vector<Peato> peatons;
-    std::vector<Diners> dinersTerra;
+    Peatons* peatons;
+    int cantitatPeatons;
     int ampladaVista;
     int alturaVista;
-    int FPS = 144;
-    bool mostrarVistaCompleta = false;
+    int FPS = 10;
+    Diners* diners = nullptr;
 
+    // Constructor
     GTASANANDREAS()
     {
-        srand(static_cast<unsigned>(time(NULL)));
+        srand((time(NULL)));
+
         cargarConfiguracio();
+
 
         ampladaVista = 40;
         alturaVista = 20;
+
+
         inicialitzarMapa();
         inicialitzarJugador();
         inicialitzarPeatons();
         mostrarVista();
 
+        // GameLopp
         while (true)
         {
             procesarInput();
@@ -86,23 +91,43 @@ struct GTASANANDREAS
         }
     }
 
+    // Destructor per allibera la memoria
     ~GTASANANDREAS()
     {
-        for (int i = 0; i < config.altura; i++)
+        // Libera diners
+        Diners* actual = diners;
+        while (actual != nullptr)
         {
-            delete[] mapa[i];
+            Diners* siguiente = actual->diners;
+            delete actual;
+            actual = siguiente;
         }
-        delete[] mapa;
+
+        // Libera mapa correctamente
+        if (mapa != nullptr)
+        {
+            for (int i = 0; i < config.altura; i++)
+            {
+                delete[] mapa[i];
+            }
+            delete[] mapa;
+        }
+
+        delete[] peatons;
     }
 
+    // Carrega la configuració
     void cargarConfiguracio()
     {
         std::ifstream archivo("config.txt");
         if (archivo.is_open())
         {
             char separador;
-            archivo >> config.amplada >> separador >> config.altura;
-            archivo >> config.peatonsLosSantos >> separador >> config.peatgeLosSantos >> separador >> config.dinersMaxLosSantos;
+            // Llegeix les dimensions del mapa
+            archivo >> config.amplada >> separador >> config.altura >> separador;
+            // Llegeix la configuració de Los Santos
+            archivo >> config.peatonsLosSantos >> separador >> config.peatgeLosSantos >> separador >> config.dinersMaxLosSantos >> separador;
+            // Llegeix la configuració de San Fierro
             archivo >> config.peatonsSanFierro >> separador >> config.peatgeSanFierro >> separador >> config.dinersMaxSanFierro;
             archivo.close();
         }
@@ -110,11 +135,15 @@ struct GTASANANDREAS
         {
             std::cout << "No es pot obrir el fitxer";
         }
+
     }
 
+    // Inicialitza el mapa del joc
     void inicialitzarMapa()
     {
+
         mapa = new char* [config.altura];
+
 
         for (int i = 0; i < config.altura; i++)
         {
@@ -125,11 +154,13 @@ struct GTASANANDREAS
             }
         }
 
+
         ampladaIsla = config.amplada / 3;
         for (int i = 0; i < config.altura; i++)
         {
             mapa[i][ampladaIsla] = 'X';
             mapa[i][ampladaIsla * 2] = 'X';
+
 
             if (i >= config.altura / 2 - 1 && i <= config.altura / 2 + 1)
             {
@@ -138,6 +169,7 @@ struct GTASANANDREAS
             }
         }
 
+
         for (int j = 0; j < config.amplada; j++)
         {
             mapa[0][j] = 'X';
@@ -145,8 +177,10 @@ struct GTASANANDREAS
         }
     }
 
+    // Inicialitza el jugador
     void inicialitzarJugador()
     {
+
         jugador.posicio.x = config.amplada / 2;
         jugador.posicio.y = config.altura / 2;
         jugador.posAnterior = jugador.posicio;
@@ -154,125 +188,121 @@ struct GTASANANDREAS
         jugador.diners = 0;
     }
 
+    // Inicialitza els peatons
     void inicialitzarPeatons()
     {
-        // Peatones en Los Santos
+        // Calcula el total de peatons
+        cantitatPeatons = config.peatonsLosSantos + config.peatonsSanFierro;
+        peatons = new Peatons[cantitatPeatons];
+
+        // Peatons de Los Santos
         for (int i = 0; i < config.peatonsLosSantos; i++)
         {
-            afegirPeato(0);
+            peatons[i].posicio.x = 5 + rand() % (ampladaIsla - 10);  // Posició aleatòria dins Los Santos
+            peatons[i].posicio.y = 5 + rand() % (config.altura - 10);
+            peatons[i].direccio = rand() % 2 == 0 ? 'H' : 'V';     // Direcció aleatòria
+            peatons[i].viu = true;
+            mapa[peatons[i].posicio.y][peatons[i].posicio.x] = 'P';
         }
 
-        // Peatones en San Fierro
+        // Peatons de San Fierro
         for (int i = 0; i < config.peatonsSanFierro; i++)
         {
-            afegirPeato(1);
+            int index = config.peatonsLosSantos + i;
+            peatons[index].posicio.x = ampladaIsla + 5 + rand() % (ampladaIsla - 10);  // Posició aleatòria dins San Fierro
+            peatons[index].posicio.y = 5 + rand() % (config.altura - 10);
+            peatons[index].direccio = rand() % 2 == 0 ? 'H' : 'V';  // Direcció aleatòria
+            peatons[index].viu = true;
+            mapa[peatons[index].posicio.y][peatons[index].posicio.x] = 'P';
         }
     }
 
-    void afegirPeato(int isla)
+
+
+
+
+    bool estaCostatJugador(const Posicio& posPeaton)
     {
-        Peato nouPeato;
-        nouPeato.viu = true;
-        nouPeato.movimentPausat = false;
-        nouPeato.isla = isla;
 
-        // Generar posición aleatoria en la isla correspondiente
-        int minX, maxX;
-        if (isla == 0) // Los Santos
-        {
-            minX = 1;
-            maxX = ampladaIsla - 1;
-        }
-        else if (isla == 1) // San Fierro
-        {
-            minX = ampladaIsla + 1;
-            maxX = ampladaIsla * 2 - 1;
-        }
-        else // Las Venturas
-        {
-            minX = ampladaIsla * 2 + 1;
-            maxX = config.amplada - 2;
-        }
-
-        nouPeato.posicio.x = minX + rand() % (maxX - minX + 1);
-        nouPeato.posicio.y = 1 + rand() % (config.altura - 2);
-        nouPeato.posAnterior = nouPeato.posicio;
-
-        // Dirección aleatoria (arriba, abajo, izquierda, derecha)
-        int dir = rand() % 4;
-        switch (dir)
-        {
-        case 0: nouPeato.direccio = '^'; break;
-        case 1: nouPeato.direccio = 'v'; break;
-        case 2: nouPeato.direccio = '<'; break;
-        case 3: nouPeato.direccio = '>'; break;
-        }
-
-        peatons.push_back(nouPeato);
+        return (abs(jugador.posicio.x - posPeaton.x) + abs(jugador.posicio.y - posPeaton.y)) <= 3;
     }
 
-    void mourePeato(Peato& peato)
+
+    void mourePeatons()
     {
-        if (!peato.viu || peato.movimentPausat) return;
-
-        peato.posAnterior = peato.posicio;
-
-        // Verificar si el jugador está cerca (a 1 casilla de distancia)
-        int distanciaX = abs(jugador.posicio.x - peato.posicio.x);
-        int distanciaY = abs(jugador.posicio.y - peato.posicio.y);
-        if (distanciaX <= 1 && distanciaY <= 1)
+        for (int i = 0; i < cantitatPeatons; i++)
         {
-            peato.movimentPausat = true;
-            return;
-        }
-        else
-        {
-            peato.movimentPausat = false;
-        }
-
-        // Intentar mover en la dirección actual
-        Posicio novaPos = peato.posicio;
-        switch (peato.direccio)
-        {
-        case '^': novaPos.y--; break;
-        case 'v': novaPos.y++; break;
-        case '<': novaPos.x--; break;
-        case '>': novaPos.x++; break;
-        }
-
-        // Verificar si puede moverse
-        bool puedeMover = true;
-        if (novaPos.x <= 0 || novaPos.x >= config.amplada - 1 ||
-            novaPos.y <= 0 || novaPos.y >= config.altura - 1 ||
-            mapa[novaPos.y][novaPos.x] == 'X')
-        {
-            puedeMover = false;
-        }
-
-        // Si no puede moverse, cambiar de dirección
-        if (!puedeMover)
-        {
-            // Elegir una nueva dirección aleatoria
-            int nuevaDir = rand() % 4;
-            switch (nuevaDir)
+            if (!peatons[i].viu || estaCostatJugador(peatons[i].posicio))
             {
-            case 0: peato.direccio = '^'; break;
-            case 1: peato.direccio = 'v'; break;
-            case 2: peato.direccio = '<'; break;
-            case 3: peato.direccio = '>'; break;
+                continue;  // Salta els peatons morts o a prop del jugador ja que no cal
             }
-            return;
-        }
 
-        // Mover el peaton
-        peato.posicio = novaPos;
+            // Esborra la posicio anterior del peató amb ' '
+            mapa[peatons[i].posicio.y][peatons[i].posicio.x] = ' ';
+
+            if (peatons[i].direccio == 'H')//si es 'H' el peato va en horizontal
+            {
+
+                int PeatoX = peatons[i].posicio.x + (rand() % 3 - 1); // -1, 0 o 1,esquerra o d
+                if (PeatoX > 0 && PeatoX < config.amplada - 1 && mapa[peatons[i].posicio.y][PeatoX] == ' ')
+                {
+                    peatons[i].posicio.x = PeatoX;
+                }
+            }
+            else
+            {
+                // Moviment vertical simple
+                int PeatoY = peatons[i].posicio.y + (rand() % 3 - 1); // -1, 0 o 1
+                if (PeatoY > 0 && PeatoY < config.altura - 1 && mapa[PeatoY][peatons[i].posicio.x] == ' ')
+                {
+                    peatons[i].posicio.y = PeatoY;
+                }
+            }
+
+            // Actualitza la nova posicio al mapa amb 'P'
+            mapa[peatons[i].posicio.y][peatons[i].posicio.x] = 'P';
+        }
     }
+
+
+
+    void AtacJugador()
+    {
+        if (GetAsyncKeyState(ATTACK_KEY))
+        {
+            for (int i = 0; i < cantitatPeatons; i++)
+            {
+                if (!peatons[i].viu)
+                {
+                    continue;  //si el peato ja esta mort, no cal i es pot saltar
+                }
+
+
+                if (abs(jugador.posicio.x - peatons[i].posicio.x) <= 1 && abs(jugador.posicio.y - peatons[i].posicio.y) <= 1)
+                {
+                    //matar al peato
+                    peatons[i].viu = false;
+                    mapa[peatons[i].posicio.y][peatons[i].posicio.x] = ' ';
+
+                    //Diners aleatori
+                    int dinero = (peatons[i].posicio.x < ampladaIsla) ? rand() % config.dinersMaxLosSantos + 1 : rand() % config.dinersMaxSanFierro + 1;
+
+
+                }
+            }
+        }
+    }
+
+
+
 
     void procesarInput()
     {
+
         jugador.posAnterior = jugador.posicio;
 
-        if (GetAsyncKeyState('W') & 0x8000 && jugador.posicio.y > 1)
+        // Moviment cap adalt
+        if (GetAsyncKeyState('W') && jugador.posicio.y > 1)
         {
             if (mapa[jugador.posicio.y - 1][jugador.posicio.x] != 'X')
             {
@@ -280,7 +310,8 @@ struct GTASANANDREAS
                 jugador.Direccio = '^';
             }
         }
-        else if (GetAsyncKeyState('S') & 0x8000 && jugador.posicio.y < config.altura - 2)
+        // Moviment cap avall
+        else if (GetAsyncKeyState('S') && jugador.posicio.y < config.altura - 2)
         {
             if (mapa[jugador.posicio.y + 1][jugador.posicio.x] != 'X')
             {
@@ -288,7 +319,8 @@ struct GTASANANDREAS
                 jugador.Direccio = 'v';
             }
         }
-        else if (GetAsyncKeyState('A') & 0x8000 && jugador.posicio.x > 1)
+        // Moviment cap a l'esquerra
+        else if (GetAsyncKeyState('A') && jugador.posicio.x > 1)
         {
             if (mapa[jugador.posicio.y][jugador.posicio.x - 1] != 'X')
             {
@@ -296,7 +328,8 @@ struct GTASANANDREAS
                 jugador.Direccio = '<';
             }
         }
-        else if (GetAsyncKeyState('D') & 0x8000 && jugador.posicio.x < config.amplada - 2)
+        // Moviment cap a la dreta
+        else if (GetAsyncKeyState('D') && jugador.posicio.x < config.amplada - 2)
         {
             if (mapa[jugador.posicio.y][jugador.posicio.x + 1] != 'X')
             {
@@ -304,242 +337,486 @@ struct GTASANANDREAS
                 jugador.Direccio = '>';
             }
         }
-        else if (GetAsyncKeyState('M') & 0x8000)
-        {
-            mostrarVistaCompleta = !mostrarVistaCompleta;
-            Sleep(200); // Pequeño delay para evitar múltiples toques
-        }
-        else if (GetAsyncKeyState(VK_SPACE) & 0x8000)
-        {
-            atacar();
-            Sleep(200); // Pequeño delay para evitar múltiples toques
-        }
     }
 
-    void atacar()
-    {
-        // Verificar si hay algún peaton adyacente al jugador
-        for (auto& peato : peatons)
-        {
-            if (!peato.viu) continue;
-
-            int distanciaX = abs(jugador.posicio.x - peato.posicio.x);
-            int distanciaY = abs(jugador.posicio.y - peato.posicio.y);
-
-            // Atacar en la dirección que mira el jugador
-            bool ataqueExitoso = false;
-            switch (jugador.Direccio)
-            {
-            case '^':
-                ataqueExitoso = (peato.posicio.x == jugador.posicio.x && peato.posicio.y == jugador.posicio.y - 1);
-                break;
-            case 'v':
-                ataqueExitoso = (peato.posicio.x == jugador.posicio.x && peato.posicio.y == jugador.posicio.y + 1);
-                break;
-            case '<':
-                ataqueExitoso = (peato.posicio.y == jugador.posicio.y && peato.posicio.x == jugador.posicio.x - 1);
-                break;
-            case '>':
-                ataqueExitoso = (peato.posicio.y == jugador.posicio.y && peato.posicio.x == jugador.posicio.x + 1);
-                break;
-            }
-
-            if (ataqueExitoso)
-            {
-                // Matar al peaton
-                peato.viu = false;
-
-                // Añadir dinero al suelo
-                Diners nouDiners;
-                nouDiners.posicio = peato.posicio;
-                nouDiners.isla = peato.isla;
-
-                if (peato.isla == 0) // Los Santos
-                    nouDiners.quantitat = 1 + rand() % config.dinersMaxLosSantos;
-                else if (peato.isla == 1) // San Fierro
-                    nouDiners.quantitat = 1 + rand() % config.dinersMaxSanFierro;
-                else // Las Venturas (si se implementa)
-                    nouDiners.quantitat = 1 + rand() % 100; // Valor por defecto
-
-                dinersTerra.push_back(nouDiners);
-
-                // Regenerar peaton en la misma isla
-                afegirPeato(peato.isla);
-
-                break; // Solo atacar a un peaton a la vez
-            }
-        }
-    }
-
-    void recollirDiners()
-    {
-        for (auto it = dinersTerra.begin(); it != dinersTerra.end(); )
-        {
-            if (jugador.posicio == it->posicio)
-            {
-                jugador.diners += it->quantitat;
-                it = dinersTerra.erase(it);
-            }
-            else
-            {
-                ++it;
-            }
-        }
-    }
-
-    void mostrarMapaInicial()
-    {
-        system("cls");
-
-        // Limpiar posición anterior del jugador
-        mapa[jugador.posAnterior.y][jugador.posAnterior.x] = ' ';
-
-        // Limpiar posición anterior de los peatones
-        for (auto& peato : peatons)
-        {
-            if (peato.viu)
-            {
-                mapa[peato.posAnterior.y][peato.posAnterior.x] = ' ';
-            }
-        }
-
-        // Dibujar dinero en el suelo
-        for (auto& diners : dinersTerra)
-        {
-            mapa[diners.posicio.y][diners.posicio.x] = '$';
-        }
-
-        // Dibujar peatones vivos
-        for (auto& peato : peatons)
-        {
-            if (peato.viu)
-            {
-                mapa[peato.posicio.y][peato.posicio.x] = 'P';
-            }
-        }
-
-        // Guardar el carácter original donde está el jugador
-        char jugadorOriginal = mapa[jugador.posicio.y][jugador.posicio.x];
-
-        // Dibujar jugador
-        mapa[jugador.posicio.y][jugador.posicio.x] = jugador.Direccio;
-
-        // Mostrar el mapa
-        for (int i = 0; i < config.altura; i++)
-        {
-            for (int j = 0; j < config.amplada; j++)
-            {
-                std::cout << mapa[i][j];
-            }
-            std::cout << '\n';
-        }
-
-        // Restaurar el carácter original donde está el jugador
-        mapa[jugador.posicio.y][jugador.posicio.x] = jugadorOriginal;
-
-        std::cout << "Diners: " << jugador.diners << std::endl;
-        std::cout << "Posicio: (" << jugador.posicio.x << ", " << jugador.posicio.y << ")" << std::endl;
-    }
 
     void mostrarVista()
     {
         system("cls");
         std::cout << "                 GTA SAN ANDREAS" << std::endl;
 
-        if (mostrarVistaCompleta)
-        {
-            mostrarMapaInicial();
-            return;
-        }
+        // Posició anterior del jugador amb ' ' per borrar-ho
+        mapa[jugador.posAnterior.y][jugador.posAnterior.x] = ' ';
 
-        // Calcular los límites de la vista
-        int minX = (jugador.posicio.x - ampladaVista / 2) < 0 ? 0 : (jugador.posicio.x - ampladaVista / 2);
-        int maxX = (jugador.posicio.x + ampladaVista / 2) > (config.amplada - 1) ? (config.amplada - 1) : (jugador.posicio.x + ampladaVista / 2);
-        int minY = (jugador.posicio.y - alturaVista / 2) < 0 ? 0 : (jugador.posicio.y - alturaVista / 2);
-        int maxY = (jugador.posicio.y + alturaVista / 2) > (config.altura - 1) ? (config.altura - 1) : (jugador.posicio.y + alturaVista / 2);
-
-        // Limpiar posición anterior del jugador
-        if (jugador.posAnterior.y >= minY && jugador.posAnterior.y <= maxY &&
-            jugador.posAnterior.x >= minX && jugador.posAnterior.x <= maxX)
-        {
-            mapa[jugador.posAnterior.y][jugador.posAnterior.x] = ' ';
-        }
-
-        // Limpiar posición anterior de los peatones
-        for (auto& peato : peatons)
-        {
-            if (peato.viu &&
-                peato.posAnterior.y >= minY && peato.posAnterior.y <= maxY &&
-                peato.posAnterior.x >= minX && peato.posAnterior.x <= maxX)
-            {
-                mapa[peato.posAnterior.y][peato.posAnterior.x] = ' ';
-            }
-        }
-
-        // Dibujar dinero en el suelo
-        for (auto& diners : dinersTerra)
-        {
-            if (diners.posicio.y >= minY && diners.posicio.y <= maxY &&
-                diners.posicio.x >= minX && diners.posicio.x <= maxX)
-            {
-                mapa[diners.posicio.y][diners.posicio.x] = '$';
-            }
-        }
-
-        // Dibujar peatones vivos
-        for (auto& peato : peatons)
-        {
-            if (peato.viu &&
-                peato.posicio.y >= minY && peato.posicio.y <= maxY &&
-                peato.posicio.x >= minX && peato.posicio.x <= maxX)
-            {
-                mapa[peato.posicio.y][peato.posicio.x] = 'P';
-            }
-        }
-
-        // Guardar el carácter original donde está el jugador
+        // Guarda jugador
         char jugadorOriginal = mapa[jugador.posicio.y][jugador.posicio.x];
 
-        // Dibujar jugador
+        // Usa una variable temporal para diners
+        Diners* temp = diners;
+        while (temp != nullptr)
+        {
+            mapa[temp->posicio.y][temp->posicio.x] = '$';
+            temp = temp->diners;
+        }
+
+        // Afegir el jugador al mapa
         mapa[jugador.posicio.y][jugador.posicio.x] = jugador.Direccio;
 
-        // Mostrar la vista
-        for (int i = minY; i <= maxY; i++)
+        // La vista del jugador
+        int VistaX = jugador.posicio.x - ampladaVista / 2;
+        int VistaY = jugador.posicio.y - alturaVista / 2;
+
+        // Limits del mapa
+        if (VistaX < 0)
         {
-            for (int j = minX; j <= maxX; j++)
+            VistaX = 0;
+        }
+        if (VistaY < 0)
+        {
+            VistaY = 0;
+        }
+        if (VistaX + ampladaVista > config.amplada)
+        {
+            VistaX = config.amplada - ampladaVista;
+        }
+        if (VistaY + alturaVista > config.altura)
+        {
+            VistaY = config.altura - alturaVista;
+        }
+
+        // Mostrar només la vista del jugador
+        for (int i = VistaY; i < VistaY + alturaVista && i < config.altura; i++)
+        {
+            for (int j = VistaX; j < VistaX + ampladaVista && j < config.amplada; j++)
             {
                 std::cout << mapa[i][j];
             }
             std::cout << '\n';
         }
 
-        // Restaurar el carácter original donde está el jugador
+        // Restaura jugador
         mapa[jugador.posicio.y][jugador.posicio.x] = jugadorOriginal;
 
+        // Mostrar els diners abaix per saber quan té tot el moment
         std::cout << "Diners: " << jugador.diners << std::endl;
-        std::cout << "Posicio: (" << jugador.posicio.x << ", " << jugador.posicio.y << ")" << std::endl;
-        std::cout << "Tecla M: Mostrar mapa completo" << std::endl;
-        std::cout << "Espacio: Atacar" << std::endl;
     }
 
+    //actualitzar el joc per el GameLoop
     void actualizar()
     {
-        // Moure cada peató
-        for (auto& peato : peatons)
-        {
-            mourePeato(peato);
-        }
-
-        // Recollir diners si el jugador passa per sobre
-        recollirDiners();
-
-        // Mostrar la vista actualitzada
+        AtacJugador();
+        mourePeatons();
         mostrarVista();
     }
 };
+#include <iostream>
+#include <fstream>
+#include <stdlib.h>
+#include <time.h>
+#include <windows.h>
 
-int main()
+#define ATTACK_KEY VK_SPACE
+
+// Configuració del joc
+struct Config
 {
-    GTASANANDREAS juego;
-    return 0;
-}
+    int amplada;
+    int altura;
+    int peatonsLosSantos;
+    int peatgeLosSantos;
+    int dinersMaxLosSantos;
+    int peatonsSanFierro;
+    int peatgeSanFierro;
+    int dinersMaxSanFierro;
+};
+
+//Per guardar posicions
+struct Posicio
+{
+    int x;
+    int y;
+};
+
+//  Pels peatons
+struct Peatons
+{
+    Posicio posicio;
+    char direccio;
+    bool viu;
+};
+
+// Estructura per al jugador
+struct Jugador
+{
+    Posicio posicio;
+    Posicio posAnterior;
+    char Direccio;
+    int diners;
+};
+
+// Estructura pels diners
+struct Diners
+{
+    Posicio posicio;
+    int cantitat;
+    Diners* diners;
+};
+
+// Struct principal del joc
+struct GTASANANDREAS
+{
+    Config config;
+    char** mapa;
+    Jugador jugador;
+    int ampladaIsla;
+    Peatons* peatons;
+    int cantitatPeatons;
+    int ampladaVista;
+    int alturaVista;
+    int FPS = 10;
+    Diners* diners = nullptr;
+
+    // Constructor
+    GTASANANDREAS()
+    {
+        srand((time(NULL)));
+
+        cargarConfiguracio();
+
+
+        ampladaVista = 40;
+        alturaVista = 20;
+
+
+        inicialitzarMapa();
+        inicialitzarJugador();
+        inicialitzarPeatons();
+        mostrarVista();
+
+        // GameLopp
+        while (true)
+        {
+            procesarInput();
+            actualizar();
+            Sleep(1000 / FPS);
+        }
+    }
+
+    // Destructor per allibera la memoria
+    ~GTASANANDREAS()
+    {
+        // Libera diners
+        Diners* actual = diners;
+        while (actual != nullptr)
+        {
+            Diners* siguiente = actual->diners;
+            delete actual;
+            actual = siguiente;
+        }
+
+        // Libera mapa correctamente
+        if (mapa != nullptr)
+        {
+            for (int i = 0; i < config.altura; i++)
+            {
+                delete[] mapa[i];
+            }
+            delete[] mapa;
+        }
+
+        delete[] peatons;
+    }
+
+    // Carrega la configuració
+    void cargarConfiguracio()
+    {
+        std::ifstream archivo("config.txt");
+        if (archivo.is_open())
+        {
+            char separador;
+            // Llegeix les dimensions del mapa
+            archivo >> config.amplada >> separador >> config.altura >> separador;
+            // Llegeix la configuració de Los Santos
+            archivo >> config.peatonsLosSantos >> separador >> config.peatgeLosSantos >> separador >> config.dinersMaxLosSantos >> separador;
+            // Llegeix la configuració de San Fierro
+            archivo >> config.peatonsSanFierro >> separador >> config.peatgeSanFierro >> separador >> config.dinersMaxSanFierro;
+            archivo.close();
+        }
+        else
+        {
+            std::cout << "No es pot obrir el fitxer";
+        }
+
+    }
+
+    // Inicialitza el mapa del joc
+    void inicialitzarMapa()
+    {
+
+        mapa = new char* [config.altura];
+
+
+        for (int i = 0; i < config.altura; i++)
+        {
+            mapa[i] = new char[config.amplada];
+            for (int j = 0; j < config.amplada; j++)
+            {
+                mapa[i][j] = ' ';
+            }
+        }
+
+
+        ampladaIsla = config.amplada / 3;
+        for (int i = 0; i < config.altura; i++)
+        {
+            mapa[i][ampladaIsla] = 'X';
+            mapa[i][ampladaIsla * 2] = 'X';
+
+
+            if (i >= config.altura / 2 - 1 && i <= config.altura / 2 + 1)
+            {
+                mapa[i][ampladaIsla] = ' ';
+                mapa[i][ampladaIsla * 2] = ' ';
+            }
+        }
+
+
+        for (int j = 0; j < config.amplada; j++)
+        {
+            mapa[0][j] = 'X';
+            mapa[config.altura - 1][j] = 'X';
+        }
+    }
+
+    // Inicialitza el jugador
+    void inicialitzarJugador()
+    {
+
+        jugador.posicio.x = config.amplada / 2;
+        jugador.posicio.y = config.altura / 2;
+        jugador.posAnterior = jugador.posicio;
+        jugador.Direccio = '^';
+        jugador.diners = 0;
+    }
+
+    // Inicialitza els peatons
+    void inicialitzarPeatons()
+    {
+        // Calcula el total de peatons
+        cantitatPeatons = config.peatonsLosSantos + config.peatonsSanFierro;
+        peatons = new Peatons[cantitatPeatons];
+
+        // Peatons de Los Santos
+        for (int i = 0; i < config.peatonsLosSantos; i++)
+        {
+            peatons[i].posicio.x = 5 + rand() % (ampladaIsla - 10);  // Posició aleatòria dins Los Santos
+            peatons[i].posicio.y = 5 + rand() % (config.altura - 10);
+            peatons[i].direccio = rand() % 2 == 0 ? 'H' : 'V';     // Direcció aleatòria
+            peatons[i].viu = true;
+            mapa[peatons[i].posicio.y][peatons[i].posicio.x] = 'P';
+        }
+
+        // Peatons de San Fierro
+        for (int i = 0; i < config.peatonsSanFierro; i++)
+        {
+            int index = config.peatonsLosSantos + i;
+            peatons[index].posicio.x = ampladaIsla + 5 + rand() % (ampladaIsla - 10);  // Posició aleatòria dins San Fierro
+            peatons[index].posicio.y = 5 + rand() % (config.altura - 10);
+            peatons[index].direccio = rand() % 2 == 0 ? 'H' : 'V';  // Direcció aleatòria
+            peatons[index].viu = true;
+            mapa[peatons[index].posicio.y][peatons[index].posicio.x] = 'P';
+        }
+    }
+
+
+
+
+
+    bool estaCostatJugador(const Posicio& posPeaton)
+    {
+
+        return (abs(jugador.posicio.x - posPeaton.x) + abs(jugador.posicio.y - posPeaton.y)) <= 3;
+    }
+
+
+    void mourePeatons()
+    {
+        for (int i = 0; i < cantitatPeatons; i++)
+        {
+            if (!peatons[i].viu || estaCostatJugador(peatons[i].posicio))
+            {
+                continue;  // Salta els peatons morts o a prop del jugador ja que no cal
+            }
+
+            // Esborra la posicio anterior del peató amb ' '
+            mapa[peatons[i].posicio.y][peatons[i].posicio.x] = ' ';
+
+            if (peatons[i].direccio == 'H')//si es 'H' el peato va en horizontal
+            {
+
+                int PeatoX = peatons[i].posicio.x + (rand() % 3 - 1); // -1, 0 o 1,esquerra o d
+                if (PeatoX > 0 && PeatoX < config.amplada - 1 && mapa[peatons[i].posicio.y][PeatoX] == ' ')
+                {
+                    peatons[i].posicio.x = PeatoX;
+                }
+            }
+            else
+            {
+                // Moviment vertical simple
+                int PeatoY = peatons[i].posicio.y + (rand() % 3 - 1); // -1, 0 o 1
+                if (PeatoY > 0 && PeatoY < config.altura - 1 && mapa[PeatoY][peatons[i].posicio.x] == ' ')
+                {
+                    peatons[i].posicio.y = PeatoY;
+                }
+            }
+
+            // Actualitza la nova posicio al mapa amb 'P'
+            mapa[peatons[i].posicio.y][peatons[i].posicio.x] = 'P';
+        }
+    }
+
+
+
+    void AtacJugador()
+    {
+        if (GetAsyncKeyState(ATTACK_KEY))
+        {
+            for (int i = 0; i < cantitatPeatons; i++)
+            {
+                if (!peatons[i].viu)
+                {
+                    continue;  //si el peato ja esta mort, no cal i es pot saltar
+                }
+
+
+                if (abs(jugador.posicio.x - peatons[i].posicio.x) <= 1 && abs(jugador.posicio.y - peatons[i].posicio.y) <= 1)
+                {
+                    //matar al peato
+                    peatons[i].viu = false;
+                    mapa[peatons[i].posicio.y][peatons[i].posicio.x] = ' ';
+
+                    //Diners aleatori
+                    int dinero = (peatons[i].posicio.x < ampladaIsla) ? rand() % config.dinersMaxLosSantos + 1 : rand() % config.dinersMaxSanFierro + 1;
+
+
+                }
+            }
+        }
+    }
+
+
+
+
+    void procesarInput()
+    {
+
+        jugador.posAnterior = jugador.posicio;
+
+        // Moviment cap adalt
+        if (GetAsyncKeyState('W') && jugador.posicio.y > 1)
+        {
+            if (mapa[jugador.posicio.y - 1][jugador.posicio.x] != 'X')
+            {
+                jugador.posicio.y--;
+                jugador.Direccio = '^';
+            }
+        }
+        // Moviment cap avall
+        else if (GetAsyncKeyState('S') && jugador.posicio.y < config.altura - 2)
+        {
+            if (mapa[jugador.posicio.y + 1][jugador.posicio.x] != 'X')
+            {
+                jugador.posicio.y++;
+                jugador.Direccio = 'v';
+            }
+        }
+        // Moviment cap a l'esquerra
+        else if (GetAsyncKeyState('A') && jugador.posicio.x > 1)
+        {
+            if (mapa[jugador.posicio.y][jugador.posicio.x - 1] != 'X')
+            {
+                jugador.posicio.x--;
+                jugador.Direccio = '<';
+            }
+        }
+        // Moviment cap a la dreta
+        else if (GetAsyncKeyState('D') && jugador.posicio.x < config.amplada - 2)
+        {
+            if (mapa[jugador.posicio.y][jugador.posicio.x + 1] != 'X')
+            {
+                jugador.posicio.x++;
+                jugador.Direccio = '>';
+            }
+        }
+    }
+
+
+    void mostrarVista()
+    {
+        system("cls");
+        std::cout << "                 GTA SAN ANDREAS" << std::endl;
+
+        // Posició anterior del jugador amb ' ' per borrar-ho
+        mapa[jugador.posAnterior.y][jugador.posAnterior.x] = ' ';
+
+        // Guarda jugador
+        char jugadorOriginal = mapa[jugador.posicio.y][jugador.posicio.x];
+
+        // Usa una variable temporal para diners
+        Diners* temp = diners;
+        while (temp != nullptr)
+        {
+            mapa[temp->posicio.y][temp->posicio.x] = '$';
+            temp = temp->diners;
+        }
+
+        // Afegir el jugador al mapa
+        mapa[jugador.posicio.y][jugador.posicio.x] = jugador.Direccio;
+
+        // La vista del jugador
+        int VistaX = jugador.posicio.x - ampladaVista / 2;
+        int VistaY = jugador.posicio.y - alturaVista / 2;
+
+        // Limits del mapa
+        if (VistaX < 0)
+        {
+            VistaX = 0;
+        }
+        if (VistaY < 0)
+        {
+            VistaY = 0;
+        }
+        if (VistaX + ampladaVista > config.amplada)
+        {
+            VistaX = config.amplada - ampladaVista;
+        }
+        if (VistaY + alturaVista > config.altura)
+        {
+            VistaY = config.altura - alturaVista;
+        }
+
+        // Mostrar només la vista del jugador
+        for (int i = VistaY; i < VistaY + alturaVista && i < config.altura; i++)
+        {
+            for (int j = VistaX; j < VistaX + ampladaVista && j < config.amplada; j++)
+            {
+                std::cout << mapa[i][j];
+            }
+            std::cout << '\n';
+        }
+
+        // Restaura jugador
+        mapa[jugador.posicio.y][jugador.posicio.x] = jugadorOriginal;
+
+        // Mostrar els diners abaix per saber quan té tot el moment
+        std::cout << "Diners: " << jugador.diners << std::endl;
+    }
+
+    //actualitzar el joc per el GameLoop
+    void actualizar()
+    {
+        AtacJugador();
+        mourePeatons();
+        mostrarVista();
+    }
+};
