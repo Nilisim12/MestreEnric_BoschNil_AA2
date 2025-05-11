@@ -20,12 +20,9 @@ struct Config
 };
 
 <<<<<<< HEAD
-<<<<<<< HEAD
 =======
 //Per guardar posicions
 >>>>>>> Peaton
-=======
->>>>>>> Vista
 struct Posicio
 {
     int x;
@@ -33,12 +30,9 @@ struct Posicio
 };
 
 <<<<<<< HEAD
-<<<<<<< HEAD
 =======
 //  Pels peatons
 >>>>>>> Peaton
-=======
->>>>>>> Vista
 struct Peatons
 {
     Posicio posicio;
@@ -60,15 +54,11 @@ struct Diners
 {
     Posicio posicio;
 <<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> Vista
     int cantidad;
 };
 
 struct GTASANANDREAS
 {
-<<<<<<< HEAD
 
 =======
     int cantitat;
@@ -79,8 +69,6 @@ struct GTASANANDREAS
 struct GTASANANDREAS
 {
 >>>>>>> Peaton
-=======
->>>>>>> Vista
     Config config;
     char** mapa;
     Jugador jugador;
@@ -88,7 +76,6 @@ struct GTASANANDREAS
     Peatons* peatons;
     int cantitatPeatons;
     int ampladaVista;
-<<<<<<< HEAD
 <<<<<<< HEAD
     int anchuraVista;
     int FPS = 60;
@@ -129,31 +116,12 @@ struct GTASANANDREAS
 
         // GameLopp
 >>>>>>> Peaton
-=======
-    int alturaVista;
-    int FPS = 144;
-
-    GTASANANDREAS()
-    {
-        cargarConfiguracio();
-
-        ampladaVista = 40;
-        alturaVista = 20;
-        inicialitzarMapa();
-        inicialitzarJugador();
-        mostrarVista();
-
->>>>>>> Vista
         while (true)
         {
             procesarInput();
             actualizar();
 <<<<<<< HEAD
-<<<<<<< HEAD
             Sleep(1);
-=======
-            Sleep(1000 / FPS);
->>>>>>> Vista
         }
     }
 
@@ -165,7 +133,6 @@ struct GTASANANDREAS
         }
         delete[] mapa;
         delete[] peatons;
-<<<<<<< HEAD
 
     }
 
@@ -201,17 +168,12 @@ struct GTASANANDREAS
 
     // Carrega la configuració
 >>>>>>> Peaton
-=======
-    }
-
->>>>>>> Vista
     void cargarConfiguracio()
     {
         std::ifstream archivo("config.txt");
         if (archivo.is_open())
         {
             char separador;
-<<<<<<< HEAD
 <<<<<<< HEAD
             archivo >> config.amplada >> separador >> config.altura;
             archivo >> config.peatonsLosSantos >> separador >> config.peatgeLosSantos >> separador >> config.dinersMaxLosSantos;
@@ -222,10 +184,6 @@ struct GTASANANDREAS
             archivo >> config.peatonsLosSantos >> separador >> config.peatgeLosSantos >> separador >> config.dinersMaxLosSantos >> separador;
             // Llegeix la configuració de San Fierro
 >>>>>>> Peaton
-=======
-            archivo >> config.amplada >> separador >> config.altura;
-            archivo >> config.peatonsLosSantos >> separador >> config.peatgeLosSantos >> separador >> config.dinersMaxLosSantos;
->>>>>>> Vista
             archivo >> config.peatonsSanFierro >> separador >> config.peatgeSanFierro >> separador >> config.dinersMaxSanFierro;
             archivo.close();
         }
@@ -234,9 +192,6 @@ struct GTASANANDREAS
             std::cout << "No es pot obrir el fitxer";
         }
 <<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> Vista
     }
 
     void inicialitzarMapa()
@@ -246,7 +201,6 @@ struct GTASANANDREAS
         for (int i = 0; i < config.altura; i++)
         {
             mapa[i] = new char[config.amplada];
-<<<<<<< HEAD
 
 
 =======
@@ -264,22 +218,17 @@ struct GTASANANDREAS
         {
             mapa[i] = new char[config.amplada];
 >>>>>>> Peaton
-=======
->>>>>>> Vista
             for (int j = 0; j < config.amplada; j++)
             {
                 mapa[i][j] = ' ';
             }
         }
 
-<<<<<<< HEAD
 
 <<<<<<< HEAD
 
 =======
 >>>>>>> Peaton
-=======
->>>>>>> Vista
         ampladaIsla = config.amplada / 3;
         for (int i = 0; i < config.altura; i++)
         {
@@ -287,12 +236,9 @@ struct GTASANANDREAS
             mapa[i][ampladaIsla * 2] = 'X';
 
 <<<<<<< HEAD
-<<<<<<< HEAD
 =======
 
 >>>>>>> Peaton
-=======
->>>>>>> Vista
             if (i >= config.altura / 2 - 1 && i <= config.altura / 2 + 1)
             {
                 mapa[i][ampladaIsla] = ' ';
@@ -301,12 +247,9 @@ struct GTASANANDREAS
         }
 
 <<<<<<< HEAD
-<<<<<<< HEAD
 =======
 
 >>>>>>> Peaton
-=======
->>>>>>> Vista
         for (int j = 0; j < config.amplada; j++)
         {
             mapa[0][j] = 'X';
@@ -314,7 +257,6 @@ struct GTASANANDREAS
         }
     }
 
-<<<<<<< HEAD
 <<<<<<< HEAD
 =======
     // Inicialitza el jugador
@@ -398,18 +340,8 @@ struct GTASANANDREAS
 
 
     bool estaCostatJugador(const Posicio& posPeaton)
-=======
-    void inicialitzarJugador()
->>>>>>> Vista
     {
-        jugador.posicio.x = config.amplada / 2;
-        jugador.posicio.y = config.altura / 2;
-        jugador.posAnterior = jugador.posicio;
-        jugador.Direccio = '^';
-        jugador.diners = 0;
-    }
 
-<<<<<<< HEAD
         return (abs(jugador.posicio.x - posPeaton.x) + abs(jugador.posicio.y - posPeaton.y)) <= 3;
     }
 
@@ -490,24 +422,13 @@ struct GTASANANDREAS
         // Moviment cap adalt
         if (GetAsyncKeyState('W') && jugador.posicio.y > 1)
         {
-=======
-    void procesarInput()
-    {
-        jugador.posAnterior = jugador.posicio;
-
-        if (GetAsyncKeyState('W') && jugador.posicio.y > 1)
-        {
->>>>>>> Vista
             if (mapa[jugador.posicio.y - 1][jugador.posicio.x] != 'X')
             {
                 jugador.posicio.y--;
                 jugador.Direccio = '^';
             }
         }
-<<<<<<< HEAD
         // Moviment cap avall
-=======
->>>>>>> Vista
         else if (GetAsyncKeyState('S') && jugador.posicio.y < config.altura - 2)
         {
             if (mapa[jugador.posicio.y + 1][jugador.posicio.x] != 'X')
@@ -516,10 +437,7 @@ struct GTASANANDREAS
                 jugador.Direccio = 'v';
             }
         }
-<<<<<<< HEAD
         // Moviment cap a l'esquerra
-=======
->>>>>>> Vista
         else if (GetAsyncKeyState('A') && jugador.posicio.x > 1)
         {
             if (mapa[jugador.posicio.y][jugador.posicio.x - 1] != 'X')
@@ -528,10 +446,7 @@ struct GTASANANDREAS
                 jugador.Direccio = '<';
             }
         }
-<<<<<<< HEAD
         // Moviment cap a la dreta
-=======
->>>>>>> Vista
         else if (GetAsyncKeyState('D') && jugador.posicio.x < config.amplada - 2)
         {
             if (mapa[jugador.posicio.y][jugador.posicio.x + 1] != 'X')
@@ -542,7 +457,6 @@ struct GTASANANDREAS
         }
     }
 
-<<<<<<< HEAD
 
     void mostrarVista()
 >>>>>>> Peaton
@@ -604,26 +518,6 @@ struct GTASANANDREAS
         {
             for (int j = VistaX; j < VistaX + ampladaVista && j < config.amplada; j++)
 >>>>>>> Peaton
-=======
-    void mostrarMapaInicial()
-    {
-        system("cls");
-
-
-
-        mapa[jugador.posAnterior.y][jugador.posAnterior.x] = ' ';
-
-
-        char jugadorOriginal = mapa[jugador.posicio.y][jugador.posicio.x];
-
-
-        mapa[jugador.posicio.y][jugador.posicio.x] = jugador.Direccio;
-
-
-        for (int i = 0; i < config.altura; i++)
-        {
-            for (int j = 0; j < config.amplada; j++)
->>>>>>> Vista
             {
                 std::cout << mapa[i][j];
             }
@@ -631,14 +525,10 @@ struct GTASANANDREAS
         }
 
 <<<<<<< HEAD
-<<<<<<< HEAD
-=======
->>>>>>> Vista
 
         mapa[jugador.posicio.y][jugador.posicio.x] = jugadorOriginal;
 
         std::cout << "Diners: " << jugador.diners << std::endl;
-<<<<<<< HEAD
     }
 
     void actualizar()
@@ -663,30 +553,6 @@ struct GTASANANDREAS
     {
         AtacJugador();
         mourePeatons();
-=======
-        std::cout << "Posicio: (" << jugador.posicio.x << ", " << jugador.posicio.y << ")" << std::endl;
-    }
-
-    void mostrarVista()
-    {
-        system("cls");
-        std::cout << "                 GTA SAN ANDREAS" << std::endl;
-
-
-        mapa[jugador.posAnterior.y][jugador.posAnterior.x] = ' ';
-
-
-        char jugadorOriginal = mapa[jugador.posicio.y][jugador.posicio.x];
-
-
-        mapa[jugador.posicio.y][jugador.posicio.x] = jugador.Direccio;
-
-
-    }
-
-    void actualizar()
-    {
->>>>>>> Vista
         mostrarVista();
     }
 >>>>>>> Peaton
@@ -695,10 +561,7 @@ int main()
 {
     GTASANANDREAS juego;
 <<<<<<< HEAD
-<<<<<<< HEAD
 
 =======
 >>>>>>> Peaton
-=======
->>>>>>> Vista
 }
