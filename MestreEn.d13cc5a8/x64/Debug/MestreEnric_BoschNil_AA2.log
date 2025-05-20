@@ -1,5 +1,0 @@
-﻿  gtaSanAndreas.cpp
-C:\Users\nilbo\Pictures\MestreEnric_BoschNil_AA2\MestreEnric_BoschNil_AA2\gtaSanAndreas.cpp(10,16): warning C4244: 'argumento': conversión de 'time_t' a 'unsigned int'; posible pérdida de datos
-  main.cpp
-  Generando código...
-  MestreEnric_BoschNil_AA2.vcxproj -> C:\Users\nilbo\Pictures\MestreEnric_BoschNil_AA2\MestreEnric_BoschNil_AA2\x64\Debug\MestreEnric_BoschNil_AA2.exe

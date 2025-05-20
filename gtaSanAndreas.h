@@ -1,46 +1,47 @@
 #pragma once
-#ifndef GTA_SAN_ANDREAS_H
-#define GTA_SAN_ANDREAS_H
-
 #include <windows.h>
 #include "config.h"
-#include "jugador.h"
-#include "peatons.h"
-#include "diners.h"
+#include "player.h"
+#include "position.h"
+#include "pedestrians.h"
+#include "money.h"
+#include "Cars.h"
 
-#define ATTACK_KEY VK_SPACE
+const int ATTACK_KEY = VK_SPACE;
+const int CAR_ENTER_KEY = 'E';
 
-class GTASANANDREAS
+class GTASanAndreas
 {
 public:
-    GTASANANDREAS();
-    ~GTASANANDREAS();
+    GTASanAndreas();
+    ~GTASanAndreas();
 
 private:
     Config config;
-    char** mapa;
-    Jugador jugador;
-    int ampladaIsla;
-    Peatons* peatons;
-    int cantitatPeatons;
-    int ampladaVista;
-    int alturaVista;
+    char** map;
+    Player player;
+    int islandWidth;
+    Pedestrian* pedestrians;
+    int pedestriansCount;
+    int viewWidth;
+    int viewHeight;
     int FPS;
-    Diners* diners;
+    Money* money;
+    Car* controlledCar;
+    CarSystem carSystem;
 
-    void cargarConfiguracio();
-    void inicialitzarMapa();
-    void inicialitzarJugador();
-    void inicialitzarPeatons();
-    void regenerarPeaton(int indice);
-    bool estaCostatJugador(const Posicio& posPeaton);
-    void mourePeatons();
-    void agregarDiners(Posicio pos, int cantidad);
-    void AtacJugador();
-    void recollirDiners();
-    void procesarInput();
-    void mostrarVista();
-    void actualizar();
+    void loadConfig();
+    void initializeMap();
+    void initializePlayer();
+    void initializePedestrians();
+    void regeneratePedestrian(int index);
+    bool isNextToPlayer(const Position& pedestrianPos);
+    void movePedestrians();
+    void addMoney(Position pos, int amount);
+    void playerAttack();
+    void collectMoney();
+    void processInput();
+    void showView();
+    void update();
 };
 
-#endif

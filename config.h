@@ -1,17 +1,24 @@
 #pragma once
-#ifndef CONFIG_H
-#define CONFIG_H
 
-struct Config
+class Config
 {
-    int amplada;
-    int altura;
-    int peatonsLosSantos;
-    int peatgeLosSantos;
-    int dinersMaxLosSantos;
-    int peatonsSanFierro;
-    int peatgeSanFierro;
-    int dinersMaxSanFierro;
+public:
+    int width;
+    int height;
+    int cjLife;
+    int cjAttack;
+    int sanFierroToll;
+    int lasVenturasToll;
+    int losSantosPedestrians;
+    int losSantosMaxMoney;
+    int losSantosPedestriansLife;
+    int losSantosPedestriansAttack;
+    int sanFierroPedestrians;
+    int sanFierroMaxMoney;
+    int sanFierroPedestriansLife;
+    int sanFierroPedestriansAttack;
+    int lasVenturasPedestrians;
+    int lasVenturasMaxMoney;
+    int lasVenturasPedestriansLife;
+    int lasVenturasPedestriansAttack;
 };
-
-#endif
